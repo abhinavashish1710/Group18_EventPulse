@@ -1,0 +1,175 @@
+# EventPulse
+
+*Event registration that keeps every seat, sign-up, and organizer in sync.*
+
+**Requirement Analysis Document**
+
+**Platform:** ASP.NET Core MVC | EF Core | SQL Server
+
+## Group-18
+
+| Application Number | Name |
+| --- | --- |
+| IN26011309 | Dhrubo Dutta |
+| IN26011617 | Arpit Ambastha |
+| IN26010754 | Sarthak Srivastava |
+| IN26011121 | Aurko Chatterjee |
+| IN26010977 | Abhinash Ashish |
+| IN26011220 | Shivam Sharma |
+| IN26012006 | Parthib Datta Muhuri |
+
+---
+
+## 1. Business Overview
+
+Organizers currently track event sign-ups manually using spreadsheets or email threads. This leads to overbooking, no self-service registration for attendees, no visibility into who is attending, and no way to handle payments, cancellations, or full events in a structured way.
+
+EventPulse is a web-based event registration system that lets attendees browse and register for events online, lets organizers manage events and capacity, and automates the workflows around payment, refunds, cancellations, waitlisting, and check-in.
+
+### 1.1 Stakeholders
+
+- **Attendee** — browses events, registers, pays, cancels if needed
+- **Organizer** — creates and manages events, views attendees and revenue
+- **Admin** — manages organizer accounts and oversees the platform
+
+### 1.2 User Roles & Permissions
+
+| Role | Can Do |
+| --- | --- |
+| Attendee | Browse events, register, pay, view own registrations, cancel, receive refund, view QR ticket |
+| Organizer | Create/edit/delete own events, set capacity & price, view attendee list, view transactions, scan QR for check-in |
+| Admin | Manage organizer accounts, view all events and transactions across the platform |
+
+---
+
+## 2. Functional Requirements
+
+### 2.1 Event Registration & Capacity
+
+- Attendee can browse/search events by name, date, category
+- Attendee can register for an event if seats remain
+- System blocks registration automatically once an event reaches capacity
+- Seats remaining is shown in real time on the event listing
+
+### 2.2 Payment & Refund (mock)
+
+- Paid events require a simulated checkout step before registration is confirmed
+- A Payment record is created with status Pending, then updated to Completed (mock gateway, no real transaction)
+- Free events (price = 0) skip the payment step entirely
+- On cancellation, a refund is automatically triggered: Payment status changes to Refunded
+- Attendee can view their payment/refund history
+- Organizer/Admin can view all transactions for an event
+
+### 2.3 Cancellation
+
+- Attendee can cancel a confirmed registration before the event date
+- Cancelling a paid registration triggers the refund flow (2.2)
+- Cancelling frees up one seat on the event
+- If a waitlist exists for that event, the next waitlisted attendee is automatically promoted (see 2.4)
+
+### 2.4 Auto-Queuing (Waitlist)
+
+- If an event is full, an attendee can join a waitlist instead of being blocked outright
+- Waitlist is ordered first-in-first-out
+- When a seat frees up (via cancellation), the system automatically promotes the next attendee on the waitlist to a confirmed registration
+- Promoted attendee is notified (in-app) and, if the event is paid, goes through the payment step to confirm
+
+### 2.5 QR Code Entry / Check-in
+
+- On successful registration (and payment, if applicable), the system generates a unique QR code tied to that registration
+- Attendee can view/download their QR ticket from 'My Registrations'
+- Organizer uses a check-in screen to scan/enter the QR code and mark attendance
+- Each QR code can only be used once — a second scan is flagged as 'already checked in'
+- Organizer dashboard shows checked-in count vs. total registered
+
+### 2.6 Dashboards
+
+- **Attendee:** my upcoming events, my registrations, my payment history
+- **Organizer:** event list, attendees per event, revenue per event, check-in status
+- **Admin:** platform-wide overview of events and organizers
+
+---
+
+## 3. Non-Functional Requirements
+
+| Category | Requirement |
+| --- | --- |
+| Security | Role-based access control; only authenticated users can register or manage events |
+| Validation | No registration beyond capacity; no double registration by the same attendee; no negative price/capacity |
+| Performance | Event listing and attendee lists are paginated |
+| Auditability | Every registration, payment, refund, and check-in is timestamped |
+| Usability | QR ticket and payment status are visible to the attendee at every stage |
+
+---
+
+## 4. User Stories & Acceptance Criteria
+
+| Feature | User Story | Acceptance Criteria |
+| --- | --- | --- |
+| Registration | As an attendee, I want to register for an event so that I can attend it. | Registration blocked if seats = 0; seat count decreases by 1 on success. |
+| Payment | As an attendee, I want to pay for a paid event so that my registration is confirmed. | Payment record created; status moves Pending → Completed; registration confirmed only after payment success. |
+| Refund | As an attendee, I want a refund when I cancel a paid registration so that I get my money back. | Payment status changes to Refunded; refund amount matches original payment. |
+| Cancellation | As an attendee, I want to cancel my registration so that I free up my seat. | Registration status = Cancelled; seat count increases by 1; refund triggered if paid. |
+| Waitlist | As an attendee, I want to join a waitlist when an event is full so that I get a seat if one opens up. | Waitlist entry created with position; promoted automatically to Confirmed on cancellation, in FIFO order. |
+| QR Check-in | As an organizer, I want to scan an attendee's QR code so that I can verify entry. | Valid unused QR marks attendance = true; reused QR is rejected with an 'already checked in' message. |
+
+---
+
+## 5. System Design
+
+EventPulse follows a layered ASP.NET Core MVC architecture:
+
+- **Presentation Layer** — Razor views / Controllers (Event, Registration, Payment, CheckIn)
+- **Application/Service Layer** — EventService, RegistrationService, PaymentService, WaitlistService, QrService
+- **Data Layer** — EF Core DbContext, Repositories
+- **Identity** — ASP.NET Core Identity for authentication and role-based authorization
+
+**Key workflow — Register for a Paid Event:**
+
+1. Attendee clicks Register → system checks SeatsRemaining
+2. If seats available → redirect to mock Payment page
+3. On payment success → create Registration (Confirmed) + Payment (Completed) + generate QR code
+4. If seats = 0 → offer 'Join Waitlist' instead
+
+**Key workflow — Cancellation:**
+
+1. Attendee cancels → Registration status = Cancelled
+2. If paid → Payment status = Refunded
+3. SeatsRemaining +1
+4. If waitlist not empty → promote first waitlisted entry → create Registration (Confirmed) automatically
+
+---
+
+## 6. Database Design
+
+| Entity | Key Fields |
+| --- | --- |
+| User | Id, Name, Email, Role (Attendee / Organizer / Admin) |
+| Event | Id, Name, Description, Date, Location, Category, Price, Capacity, SeatsRemaining, OrganizerId |
+| Registration | Id, EventId, UserId, Status (Confirmed / Cancelled / Waitlisted), RegisteredAt, QrCode, CheckedIn (bool) |
+| Payment | Id, RegistrationId, Amount, Status (Pending / Completed / Refunded / Failed), PaymentMethod, TransactionDate |
+| Waitlist | Id, EventId, UserId, Position, JoinedAt |
+
+**Relationships:** one Event has many Registrations and many Waitlist entries; one Registration has at most one Payment; one User can have many Registrations across different Events.
+
+---
+
+## 7. Development Tasks & Sprint Plan
+
+| Sprint | Development Tasks |
+| --- | --- |
+| Sprint 1 | Project setup, Identity/auth, role-based access, user management |
+| Sprint 2 | Event CRUD (organizer), event browsing/search (attendee) |
+| Sprint 3 | Registration flow, capacity/seat logic, cancellation, waitlist auto-promotion |
+| Sprint 4 | Mock payment flow, refund on cancellation, transaction history |
+| Sprint 5 | QR code generation, organizer check-in screen, dashboards, validation & polish |
+
+---
+
+## 8. Requirement Analysis Checklist
+
+- **Business** — Problem: manual, error-prone event sign-up. Objective: automated, self-service registration with payment, waitlist, and check-in.
+- **Users** — Attendee, Organizer, Admin, with permissions defined in Section 1.2.
+- **Functional** — Registration, payment/refund, cancellation, auto-queuing, QR check-in, dashboards (Section 2).
+- **Non-functional** — Security, validation, performance, auditability, usability (Section 3).
+- **Validation** — Each feature above has a paired acceptance criterion (Section 4) and is testable against it.
