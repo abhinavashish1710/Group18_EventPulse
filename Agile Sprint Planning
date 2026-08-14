@@ -1,0 +1,116 @@
+# EventPulse
+
+**Agile Sprint Planning Document**
+
+**Platform:** ASP.NET Core MVC | EF Core | SQL Server
+
+## Group-18
+
+| Application Number | Name | Module Owned |
+| --- | --- | --- |
+| IN26011309 | Dhrubo Dutta | Authentication & Roles |
+| IN26011617 | Arpit Ambastha | Event Management |
+| IN26010754 | Sarthak Srivastava | Registration & Capacity |
+| IN26011121 | Aurko Chatterjee | Payment & Refund |
+| IN26010977 | Abhinash Ashish | Cancellation & Waitlist |
+| IN26011220 | Shivam Sharma | QR Check-in |
+| IN26012006 | Parthib Datta Muhuri | Dashboards & Database |
+
+---
+
+## 1. Sprint Overview
+
+The project is delivered across 5 sprints of 1 week each (5 weeks total). Each sprint has a clear goal, a set of user stories drawn from the requirement-analysis document, and a designated owner, with a supporting member where the module depends on shared groundwork (e.g. database schema, authentication).
+
+| Sprint | Duration | Sprint Goal |
+| --- | --- | --- |
+| Sprint 1 | Week 1 | Project setup, authentication, and role-based access for all user types |
+| Sprint 2 | Week 2 | Organizers can create and manage events; attendees can browse/search them |
+| Sprint 3 | Week 3 | Attendees can register within capacity limits; full waitlist join flow available |
+| Sprint 4 | Week 4 | Paid registrations go through mock payment; cancellations trigger refunds and auto-promote the waitlist |
+| Sprint 5 | Week 5 | QR check-in, role-based dashboards, and final validation/polish |
+
+---
+
+## 2. Sprint 1 — Foundation: Auth, Roles & Database Schema
+
+**Owner:** Dhrubo Dutta (Auth & Roles). **Supporting:** Parthib Datta Muhuri (initial database schema).
+
+| User Story | Tasks | Story Points |
+| --- | --- | --- |
+| As a new user, I want to register and log in so that I can access the system. | Set up ASP.NET Core Identity; build register/login pages | 5 |
+| As the system, I want three distinct roles so that permissions are properly separated. | Configure Attendee/Organizer/Admin roles; role-based route guards | 5 |
+| As a developer, I want the core database schema in place so that other modules can build on it. | Create Users, Events (skeleton) tables via EF Core migrations | 3 |
+
+---
+
+## 3. Sprint 2 — Event Management
+
+**Owner:** Arpit Ambastha (Event Management).
+
+| User Story | Tasks | Story Points |
+| --- | --- | --- |
+| As an organizer, I want to create an event so that attendees can find and register for it. | Build Event create/edit/delete pages; validate required fields | 5 |
+| As an attendee, I want to browse and search events so that I can find ones I'm interested in. | Event listing page; search/filter by name, date, category | 5 |
+| As an organizer, I want to set capacity and price so that registration and payment behave correctly later. | Add Capacity, SeatsRemaining, Price fields to Event model | 3 |
+
+---
+
+## 4. Sprint 3 — Registration, Capacity & Waitlist
+
+**Owner:** Sarthak Srivastava (Registration & Capacity). **Supporting:** Abhinash Ashish (Waitlist join flow).
+
+| User Story | Tasks | Story Points |
+| --- | --- | --- |
+| As an attendee, I want to register for an event so that I can attend it. | Build registration flow; decrement SeatsRemaining on success | 5 |
+| As the system, I want to block registration once an event is full so that capacity is never exceeded. | Add transactional check-and-decrement logic to prevent overbooking | 5 |
+| As an attendee, I want to join a waitlist when an event is full so that I get a seat if one opens up. | Build Waitlist entity, join flow, FIFO ordering | 5 |
+
+---
+
+## 5. Sprint 4 — Payment, Refund, Cancellation & Auto-Promotion
+
+**Owner:** Aurko Chatterjee (Payment & Refund). **Supporting:** Abhinash Ashish (Cancellation & waitlist promotion).
+
+| User Story | Tasks | Story Points |
+| --- | --- | --- |
+| As an attendee, I want to pay for a paid event so that my registration is confirmed. | Build mock PaymentService; Payment entity; Pending → Completed flow | 5 |
+| As an attendee, I want a refund when I cancel a paid registration so that I get my money back. | Refund flow: Payment status → Refunded on cancellation | 3 |
+| As an attendee, I want to cancel my registration so that I free up my seat. | Cancellation flow; free seat; trigger refund if applicable | 3 |
+| As the system, I want to auto-promote the next waitlisted attendee when a seat opens so that seats don't go unused. | FIFO promotion logic triggered on cancellation | 5 |
+
+---
+
+## 6. Sprint 5 — QR Check-in, Dashboards & Polish
+
+**Owner:** Shivam Sharma (QR Check-in). **Supporting:** Parthib Datta Muhuri (Dashboards & final schema review).
+
+| User Story | Tasks | Story Points |
+| --- | --- | --- |
+| As an attendee, I want a QR ticket so that I can be checked in at the event. | Generate unique QR code on confirmed registration | 5 |
+| As an organizer, I want to scan a QR code so that I can verify entry. | Build check-in screen; reject reused codes | 5 |
+| As a user, I want a dashboard relevant to my role so that I can see my events/registrations/revenue at a glance. | Build Attendee, Organizer, and Admin dashboards | 5 |
+| As a team, we want the system validated end-to-end so that it's demo-ready. | Cross-module testing; input validation; UI polish | 3 |
+
+---
+
+## 7. Sprint Velocity Summary
+
+| Sprint | Story Points Planned | Primary Owner(s) |
+| --- | --- | --- |
+| Sprint 1 | 13 | Dhrubo Dutta, Parthib Datta Muhuri |
+| Sprint 2 | 13 | Arpit Ambastha |
+| Sprint 3 | 15 | Sarthak Srivastava, Abhinash Ashish |
+| Sprint 4 | 16 | Aurko Chatterjee, Abhinash Ashish |
+| Sprint 5 | 18 | Shivam Sharma, Parthib Datta Muhuri |
+| **Total** | **75** | All 7 members |
+
+---
+
+## 8. Definition of Done
+
+- Feature matches its acceptance criteria from the requirement-analysis document
+- Code builds without errors and is committed to the shared repository
+- Feature has been manually tested by the owning member
+- No breaking changes to modules delivered in prior sprints
+- UI is functional and free of unhandled exceptions for the happy path
